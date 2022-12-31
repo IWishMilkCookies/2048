@@ -7,7 +7,10 @@ class QWinWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QWinWindow(QWidget *parent = 0);
+    explicit QWinWindow(QWidget* parent = 0)
+    {
+
+    }
 
 signals:
 
