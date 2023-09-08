@@ -13,7 +13,7 @@ bool TrainingData::isEof()
 	return m_TrainingDataFile.eof();
 }
 
-void TrainingData::getTopology(std::vector<unsigned>& topology)
+void TrainingData::fillTopology(std::vector<unsigned>& topology)
 {
 	std::string line;
 	std::string label;
@@ -91,7 +91,7 @@ bool TrainingDataW::isEof()
 	return m_TrainingDataFile.eof();
 }
 
-void TrainingDataW::getTopology(std::vector<unsigned>& topology)
+void TrainingDataW::fillTopology(std::vector<unsigned>& topology)
 {
 	std::wstring line;
 	std::wstring label;

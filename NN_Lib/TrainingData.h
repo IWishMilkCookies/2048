@@ -10,13 +10,14 @@ class TrainingData
 public:
 	TrainingData(std::string fileName);
 	bool isEof();
-	void getTopology(std::vector<unsigned>& topology);
+	void fillTopology(std::vector<unsigned>& topology);
+	std::vector<unsigned>& getTopology() { return m_Topology; }
 	unsigned getNextInputs(std::vector<double>& inputVals);
 	unsigned getTargetOutputs(std::vector<double>& targetVals);
 
 private:
 	std::ifstream m_TrainingDataFile;
-
+	std::vector<unsigned> m_Topology;
 };
 
 class TrainingDataW
@@ -24,11 +25,12 @@ class TrainingDataW
 public:
 	TrainingDataW(std::wstring fileName);
 	bool isEof();
-	void getTopology(std::vector<unsigned>& topology);
+	void fillTopology(std::vector<unsigned>& topology);
+	std::vector<unsigned>& getTopology() { return m_Topology; }
 	unsigned getNextInputs(std::vector<double>& inputVals);
 	unsigned getTargetOutputs(std::vector<double>& targetVals);
 
 private:
 	std::wifstream m_TrainingDataFile;
-
+	std::vector<unsigned> m_Topology;
 };

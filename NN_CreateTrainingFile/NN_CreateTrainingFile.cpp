@@ -14,10 +14,13 @@
 #include <fstream>
 #include <string>
 #include <memory>
+#include <regex>
+#include <cassert>
 
 #define MAX_LOADSTRING 100
 #define IDC_SELECT_PATH_BUTTON 1001
 #define IDC_SELECT_FILE_BUTTON 1002
+#define IDC_TRAIN_NETWORK_BUTTON 1003
 
 namespace TextBoxes
 {
@@ -27,6 +30,7 @@ namespace TextBoxes
 namespace NeuralNetwork
 {
 	std::unique_ptr<TrainingDataW> g_TrainingData;
+	std::unique_ptr<Net> g_NeuralNetwork;
 }
 
 // Global Variables:
@@ -42,9 +46,10 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 std::wstring OpenSaveDialogBox(HWND hWnd);
 std::wstring SelectFileDialogBox(HWND hWnd);
+void TrainNeuralNet();
 
 
-void WriteToFile(std::wstring filePath);
+void WriteToFile(HWND hWnd, std::wstring filePath);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -144,7 +149,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	CreateWindow(
 		L"BUTTON",  // Predefined class; Unicode assumed 
-		L"Select Trainig File",      // Button text 
+		L"Select Training File",      // Button text 
 		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
 		350,         // x position 
 		670,         // y position 
@@ -155,14 +160,33 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
 		NULL);      // Pointer not needed.
 
+	CreateWindow(
+		L"BUTTON",  // Predefined class; Unicode assumed 
+		L"Train selected Neural Net.",      // Button text 
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+		700,         // x position 
+		670,         // y position 
+		300,        // Button width
+		50,        // Button height
+		hWnd,     // Parent window
+		(HMENU)IDC_TRAIN_NETWORK_BUTTON,       // Unique button identifier.
+		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+		NULL);      // Pointer not needed.
 
-	TextBoxes::g_TextBox = CreateWindow(L"EDIT", 0, WS_BORDER | WS_CHILD | WS_VISIBLE, 10 /*x pos*/, 40 /*y pos*/, 400 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
+
+	TextBoxes::g_TextBox = CreateWindow(L"EDIT", 0, WS_BORDER | WS_CHILD | WS_VISIBLE, 10 /*x pos*/, 70 /*y pos*/, 400 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
 	//Add text box for number of tests -> User fills in how many tests need to be performed.
 	
 	CreateWindow(L"STATIC",
 		L"Fill in the topology of your network seperated by spaces: 20 10 10 5.",
 		WS_BORDER | WS_CHILD | WS_VISIBLE,
 		10 /*x pos*/, 10 /*y pos*/, 450 /*width*/, 20 /*height*/,
+		hWnd, 0, hInst, 0);
+
+	CreateWindow(L"STATIC",
+		L"Then click 'Select Path' to save the Training data file.",
+		WS_BORDER | WS_CHILD | WS_VISIBLE,
+		10 /*x pos*/, 40 /*y pos*/, 450 /*width*/, 20 /*height*/,
 		hWnd, 0, hInst, 0);
 
 	if (!hWnd)
@@ -204,14 +228,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (HIWORD(wParam) == BN_CLICKED) //Check if button is clicked
 			{
 				auto filePath = OpenSaveDialogBox(hWnd);
-				WriteToFile(filePath);
+				if (filePath.empty()) //If path doesn't exist, break out of switch case.
+					break;
+
+				WriteToFile(hWnd, filePath);
 			}
 			break;
 		case IDC_SELECT_FILE_BUTTON:
 			if (HIWORD(wParam) == BN_CLICKED)
 			{
 				auto filePath = SelectFileDialogBox(hWnd);
+				
+				if (filePath.empty()) //If path doesn't exist, break out of switch case.
+					break;
+
 				NeuralNetwork::g_TrainingData = std::make_unique<TrainingDataW>(filePath);
+
+				std::vector<unsigned int> topology;
+				NeuralNetwork::g_TrainingData->fillTopology(topology);
+				NeuralNetwork::g_NeuralNetwork = std::make_unique<Net>(topology);
+
+			}
+			break;
+		case IDC_TRAIN_NETWORK_BUTTON:
+			if (HIWORD(wParam) == BN_CLICKED)
+			{		
+				MessageBox(hWnd, L"Neural Network button works !", NULL, MB_OKCANCEL);
+				//TrainNeuralNet();
 			}
 			break;
 		default:
@@ -312,29 +355,67 @@ std::wstring SelectFileDialogBox(HWND hWnd)
 		return std::wstring{};
 }
 
-void WriteToFile(std::wstring filePath)
+void WriteToFile(HWND hWnd, std::wstring filePath)
 {
 	std::wofstream sampleData;
 	sampleData.open(filePath);
 
-	sampleData << L"topology: ";
-	//Sampla data << 'numbers of topology' << std::endl;
-	std::wstring inputOutputText{};
 	int textLength = GetWindowTextLengthW(TextBoxes::g_TextBox) + 1;
 	std::wstring topologyText(textLength, L' ');
 	
 	GetWindowTextW(TextBoxes::g_TextBox, &topologyText[0], textLength);
-	//Check if topology is valid, with regex : \d+\s\d+\s\d+(?:\s\d+)*
-	
-	sampleData << topologyText << '\n';
-	for (int i = 2000; i >= 0; --i)
-	{
-		int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-		int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-		int t = n1 ^ n2;
 
-		sampleData << L"in: " << n1 << L".0 " << n2 << L".0 " << std::endl;
-		sampleData << L"out: " << t << L".0 " << std::endl;
+	//Check if topology is valid, with regex : \d+\s\d+\s\d+(?:\s\d+)*
+	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*");
+	if (std::regex_match(topologyText, regexPattern))
+	{
+		sampleData << L"topology: ";
+		sampleData << topologyText << '\n';
+		for (int i = 2000; i >= 0; --i)
+		{
+			int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
+			int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
+			int t = n1 ^ n2;
+
+			sampleData << L"in: " << n1 << L".0 " << n2 << L".0 " << std::endl;
+			sampleData << L"out: " << t << L".0 " << std::endl;
+		}
+	}
+	else
+	{
+		MessageBox(hWnd, L"This topology is not valid.", NULL, MB_OK);
 	}
 	sampleData.close();
+}
+
+
+void TrainNeuralNet()
+{
+	std::vector<double> inputVals, targetVals, resultVals;
+	int trainingPass = 0;
+	while (NeuralNetwork::g_TrainingData->isEof())
+	{
+
+		++trainingPass;
+		//std::cout << std::endl << "Pass " << trainingPass;
+
+		//Get new input data and feed it forward
+		if (NeuralNetwork::g_TrainingData->getNextInputs(inputVals) != NeuralNetwork::g_TrainingData->getTopology()[0])
+			break;
+
+		NeuralNetwork::g_NeuralNetwork->FeedForward(inputVals);
+
+		//Collect the net's actual results
+		NeuralNetwork::g_NeuralNetwork->GetResults(resultVals);
+
+		//Train the net what the outputs should have been:
+		NeuralNetwork::g_TrainingData->getTargetOutputs(targetVals);
+		assert(targetVals.size() == NeuralNetwork::g_TrainingData->getTopology().back());
+
+		NeuralNetwork::g_NeuralNetwork->BackProp(targetVals);
+
+		//Report how well the training is working.
+		//std::cout << "Net recent average error: " << myNet->GetRecentAverageError() << std::endl;
+
+	}
 }

@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExpGame", "2048Game\ExpGame.vcxproj", "{F88E9DDD-37EB-3917-85F3-C66C3303868D}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NN_Lib", "NN_Lib\NN_Lib.vcxproj", "{3B021CE6-DD8B-4CCE-81C0-9C8F08561432}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NN_CreateTrainingFile", "NN_CreateTrainingFile\NN_CreateTrainingFile.vcxproj", "{B65D42A4-8025-46F7-A059-22C68CC04097}"
@@ -20,14 +18,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Debug|x64.ActiveCfg = Debug|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Debug|x64.Build.0 = Debug|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Debug|x86.ActiveCfg = Debug|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Debug|x86.Build.0 = Debug|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Release|x64.ActiveCfg = Release|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Release|x64.Build.0 = Release|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Release|x86.ActiveCfg = Release|x64
-		{F88E9DDD-37EB-3917-85F3-C66C3303868D}.Release|x86.Build.0 = Release|x64
 		{3B021CE6-DD8B-4CCE-81C0-9C8F08561432}.Debug|x64.ActiveCfg = Debug|x64
 		{3B021CE6-DD8B-4CCE-81C0-9C8F08561432}.Debug|x64.Build.0 = Debug|x64
 		{3B021CE6-DD8B-4CCE-81C0-9C8F08561432}.Debug|x86.ActiveCfg = Debug|Win32

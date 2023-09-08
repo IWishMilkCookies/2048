@@ -17,19 +17,19 @@ int main()
 //Select file button 
     //string filePath{"D:\\documenten\\Test_FOlder\\Test.txt"};
     //InsertRandomData(filePath);
-    //
-    //
+    
+    
     //TrainingData* traindata = new TrainingData(filePath);
-    //
-    //
+    
+    
     //vector<unsigned int> topology;
     //traindata->getTopology(topology);
     //Net* myNet = new Net(topology);
-    //
+    
     //vector<double> inputVals, targetVals, resultVals;
-    //int trainingPass = 0;
-    //
-    // 
+   // int trainingPass = 0;
+    
+     
 //Third button to apply training 
 // Make sure to check for variables being made: nullptr checks, etc
     //while (!traindata->isEof())
