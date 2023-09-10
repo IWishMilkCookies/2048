@@ -3,7 +3,8 @@
 
 #pragma region TrainingData
 
-TrainingData::TrainingData(std::string fileName)
+TrainingData::TrainingData(std::string fileName):
+	m_Topology{}
 {
 	m_TrainingDataFile.open(fileName.c_str());
 }
@@ -13,7 +14,7 @@ bool TrainingData::isEof()
 	return m_TrainingDataFile.eof();
 }
 
-void TrainingData::fillTopology(std::vector<unsigned>& topology)
+void TrainingData::fillTopology()
 {
 	std::string line;
 	std::string label;
@@ -29,7 +30,7 @@ void TrainingData::fillTopology(std::vector<unsigned>& topology)
 	{
 		unsigned n;
 		ss >> n;
-		topology.push_back(n);
+		m_Topology.push_back(n);
 	}
 
 	return;
@@ -81,7 +82,8 @@ unsigned TrainingData::getTargetOutputs(std::vector<double>& targetVals)
 #pragma endregion
 
 #pragma region TrainingDataW
-TrainingDataW::TrainingDataW(std::wstring fileName)
+TrainingDataW::TrainingDataW(std::wstring fileName) :
+	m_Topology{}
 {
 	m_TrainingDataFile.open(fileName.c_str());
 }
@@ -91,7 +93,7 @@ bool TrainingDataW::isEof()
 	return m_TrainingDataFile.eof();
 }
 
-void TrainingDataW::fillTopology(std::vector<unsigned>& topology)
+void TrainingDataW::fillTopology()
 {
 	std::wstring line;
 	std::wstring label;
@@ -107,7 +109,7 @@ void TrainingDataW::fillTopology(std::vector<unsigned>& topology)
 	{
 		unsigned n;
 		ss >> n;
-		topology.push_back(n);
+		m_Topology.push_back(n);
 	}
 
 	return;

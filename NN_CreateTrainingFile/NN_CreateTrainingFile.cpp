@@ -244,9 +244,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				NeuralNetwork::g_TrainingData = std::make_unique<TrainingDataW>(filePath);
 
-				std::vector<unsigned int> topology;
-				NeuralNetwork::g_TrainingData->fillTopology(topology);
-				NeuralNetwork::g_NeuralNetwork = std::make_unique<Net>(topology);
+				NeuralNetwork::g_TrainingData->fillTopology();
+				NeuralNetwork::g_NeuralNetwork = std::make_unique<Net>(NeuralNetwork::g_TrainingData->getTopology());
 
 			}
 			break;
@@ -299,7 +298,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-std::wstring OpenSaveDialogBox(HWND hWnd)
+std::wstring OpenSaveDialogBox(HWND hWnd) //Add Filter and extension as parameter
 {
 	//Open dialog box
 	OPENFILENAME ofn;
@@ -324,10 +323,6 @@ std::wstring OpenSaveDialogBox(HWND hWnd)
 	else
 		return std::wstring{};
 
-
-
-	//char* resultStr = new char[wcslen(ofn.lpstrFile) + 1];
-	//WriteFile(hWnd, resultStr);
 }
 
 std::wstring SelectFileDialogBox(HWND hWnd)
@@ -357,8 +352,6 @@ std::wstring SelectFileDialogBox(HWND hWnd)
 
 void WriteToFile(HWND hWnd, std::wstring filePath)
 {
-	std::wofstream sampleData;
-	sampleData.open(filePath);
 
 	int textLength = GetWindowTextLengthW(TextBoxes::g_TextBox) + 1;
 	std::wstring topologyText(textLength, L' ');
@@ -367,29 +360,30 @@ void WriteToFile(HWND hWnd, std::wstring filePath)
 
 	//Check if topology is valid, with regex : \d+\s\d+\s\d+(?:\s\d+)*
 	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*");
-	if (std::regex_match(topologyText, regexPattern))
-	{
-		sampleData << L"topology: ";
-		sampleData << topologyText << '\n';
-		for (int i = 2000; i >= 0; --i)
-		{
-			int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-			int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-			int t = n1 ^ n2;
-
-			sampleData << L"in: " << n1 << L".0 " << n2 << L".0 " << std::endl;
-			sampleData << L"out: " << t << L".0 " << std::endl;
-		}
-	}
-	else
+	if (!std::regex_match(topologyText, regexPattern))
 	{
 		MessageBox(hWnd, L"This topology is not valid.", NULL, MB_OK);
+		return;
 	}
+
+	std::wofstream sampleData;
+	sampleData.open(filePath);
+	sampleData << L"topology: ";
+	sampleData << topologyText << '\n';
+	for (int i = 2000; i >= 0; --i)
+	{
+		int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
+		int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
+		int t = n1 ^ n2;
+
+		sampleData << L"in: " << n1 << L".0 " << n2 << L".0 " << std::endl;
+		sampleData << L"out: " << t << L".0 " << std::endl;
+	}
+
 	sampleData.close();
 }
 
-
-void TrainNeuralNet()
+void TrainNeuralNet() //Write couts to file, file writing Path given as parameter.
 {
 	std::vector<double> inputVals, targetVals, resultVals;
 	int trainingPass = 0;

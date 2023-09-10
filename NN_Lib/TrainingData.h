@@ -10,7 +10,7 @@ class TrainingData
 public:
 	TrainingData(std::string fileName);
 	bool isEof();
-	void fillTopology(std::vector<unsigned>& topology);
+	void fillTopology();
 	std::vector<unsigned>& getTopology() { return m_Topology; }
 	unsigned getNextInputs(std::vector<double>& inputVals);
 	unsigned getTargetOutputs(std::vector<double>& targetVals);
@@ -25,7 +25,7 @@ class TrainingDataW
 public:
 	TrainingDataW(std::wstring fileName);
 	bool isEof();
-	void fillTopology(std::vector<unsigned>& topology);
+	void fillTopology();
 	std::vector<unsigned>& getTopology() { return m_Topology; }
 	unsigned getNextInputs(std::vector<double>& inputVals);
 	unsigned getTargetOutputs(std::vector<double>& targetVals);

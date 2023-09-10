@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NN_CreateTrainingFile", "NN
 		{3B021CE6-DD8B-4CCE-81C0-9C8F08561432} = {3B021CE6-DD8B-4CCE-81C0-9C8F08561432}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExpGame", "2048\ExpGame.vcxproj", "{7F4E67B1-0F4F-3495-BC56-C08701654544}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -34,6 +36,14 @@ Global
 		{B65D42A4-8025-46F7-A059-22C68CC04097}.Release|x64.Build.0 = Release|x64
 		{B65D42A4-8025-46F7-A059-22C68CC04097}.Release|x86.ActiveCfg = Release|Win32
 		{B65D42A4-8025-46F7-A059-22C68CC04097}.Release|x86.Build.0 = Release|Win32
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Debug|x64.ActiveCfg = Debug|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Debug|x64.Build.0 = Debug|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Debug|x86.ActiveCfg = Debug|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Debug|x86.Build.0 = Debug|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Release|x64.ActiveCfg = Release|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Release|x64.Build.0 = Release|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Release|x86.ActiveCfg = Release|x64
+		{7F4E67B1-0F4F-3495-BC56-C08701654544}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
