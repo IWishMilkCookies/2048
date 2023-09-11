@@ -110,8 +110,8 @@ void TrainingDataW::fillTopology()
 		unsigned n;
 		ss >> n;
 		m_Topology.push_back(n);
-	}
 
+	}
 	return;
 }
 

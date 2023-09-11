@@ -16,6 +16,7 @@
 #include <memory>
 #include <regex>
 #include <cassert>
+#include <numeric>
 
 #define MAX_LOADSTRING 100
 #define IDC_SELECT_PATH_BUTTON 1001
@@ -48,6 +49,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 std::wstring OpenSaveDialogBox(HWND hWnd, const wchar_t* extFilter, const wchar_t* defExtenstion);
 std::wstring SelectFileDialogBox(HWND hWnd, const wchar_t* extFilter);
 void TrainNeuralNet(std::wstring filePath);
+void GetTopologyParams(std::wstring topologyStr, int& inputLayer, int& outputLayer);
 
 
 void WriteToFile(HWND hWnd, std::wstring filePath);
@@ -131,7 +133,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
-	
+
 	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -184,7 +186,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	TextBoxes::g_TopologyTextBox = CreateWindow(L"EDIT", L"Topology", WS_BORDER | WS_CHILD | WS_VISIBLE, 10 /*x pos*/, 70 /*y pos*/, 400 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
 	TextBoxes::g_NrOfTrainingTextBox = CreateWindow(L"EDIT", L"0", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_NUMBER, 350 /*x pos*/, 100 /*y pos*/, 50 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
 	//Add text box for number of tests -> User fills in how many tests need to be performed.
-	
+
 #pragma endregion
 
 #pragma region Static Text
@@ -262,7 +264,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (HIWORD(wParam) == BN_CLICKED)
 			{
 				auto filePath = SelectFileDialogBox(hWnd, L"Training Data Files (*.TD)\0*.TD\0");
-				
+
 				if (filePath.empty()) //If path doesn't exist, break out of switch case.
 				{
 					MessageBox(hWnd, L"No valid path has been given.", NULL, MB_OK);
@@ -278,7 +280,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case IDC_TRAIN_NETWORK_BUTTON:
 			if (HIWORD(wParam) == BN_CLICKED)
-			{		
+			{
 
 				if (!NeuralNetwork::g_TrainingData)
 				{
@@ -393,13 +395,13 @@ std::wstring SelectFileDialogBox(HWND hWnd, const wchar_t* extFilter)
 
 void WriteToFile(HWND hWnd, std::wstring filePath)
 {
-	int textLength = GetWindowTextLengthW(TextBoxes::g_TopologyTextBox) + 1;
+	int textLength = GetWindowTextLengthW(TextBoxes::g_TopologyTextBox);
 	std::wstring topologyText(textLength, L' ');
-	
-	GetWindowTextW(TextBoxes::g_TopologyTextBox, &topologyText[0], textLength);
+
+	GetWindowTextW(TextBoxes::g_TopologyTextBox, &topologyText[0], textLength + 1);
 
 	//Check if topology is valid, with regex : \d+\s\d+\s\d+(?:\s\d+)*
-	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*.");
+	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*");
 	if (!std::regex_match(topologyText, regexPattern))
 	{
 		MessageBox(hWnd, L"This topology is not valid.", NULL, MB_OK | MB_ICONERROR);
@@ -409,25 +411,54 @@ void WriteToFile(HWND hWnd, std::wstring filePath)
 	std::wofstream sampleData;
 	sampleData.open(filePath);
 	sampleData << L"topology: ";
-	sampleData << topologyText << '\n';
+	sampleData << topologyText.substr(0, textLength) << std::endl;
 
 
 
 	int trainingAmount = GetWindowTextLengthW(TextBoxes::g_NrOfTrainingTextBox) + 1;
 	std::wstring trainingAmountText(trainingAmount, L' ');
-	
+
 	GetWindowTextW(TextBoxes::g_NrOfTrainingTextBox, &trainingAmountText[0], trainingAmount);
 	int actualTrainingAmount = std::stoi(trainingAmountText);
-	
 
+
+	int input, output;
+	GetTopologyParams(topologyText, input, output);
+
+	std::vector<int> inputs(input, 0);
+	std::vector<float> outputs(output, 0);
 	for (int i = actualTrainingAmount; i >= 0; --i) //2000 -> Number given in by user.
 	{
-		int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-		int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
-		int t = n1 ^ n2;
+		sampleData << L"in: ";
+		for (int j = 0; j < input; ++j)
+		{
+			inputs[j] = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
+			sampleData << inputs[j] << L".0 ";
+		}
+		sampleData << std::endl;
 
-		sampleData << L"in: " << n1 << L".0 " << n2 << L".0 " << std::endl;
-		sampleData << L"out: " << t << L".0 " << std::endl;
+		sampleData << L"out: ";
+		int sum{};
+		for (int j = 0; j < output; ++j)
+		{
+			if (j % 2 == 0) {
+				sum = std::accumulate(inputs.begin(), inputs.end(), 0, [](int a, int b)
+					{
+						return a | b;
+					});
+			}
+			else {
+
+				sum = std::accumulate(inputs.begin(), inputs.end(), 0, [](int a, int b)
+					{
+						return a & b;
+					});
+			}
+			sampleData << sum << " ";
+		}
+		sampleData << std::endl;
+
+		//outputs[j] = sum;
 	}
 
 	sampleData.close();
@@ -440,16 +471,15 @@ void TrainNeuralNet(std::wstring filePath) //Write couts to file, file writing P
 
 	std::wofstream trainingData;
 	trainingData.open(filePath);
-	
-	while (NeuralNetwork::g_TrainingData->isEof())
-	{
 
-		++trainingPass;
-		trainingData << std::endl << "Pass " << trainingPass;
+	while (!NeuralNetwork::g_TrainingData->isEof())
+	{
 
 		//Get new input data and feed it forward
 		if (NeuralNetwork::g_TrainingData->getNextInputs(inputVals) != NeuralNetwork::g_TrainingData->getTopology()[0])
 			break;
+
+		trainingData << "Pass " << trainingPass << std::endl;
 
 		NeuralNetwork::g_NeuralNetwork->FeedForward(inputVals);
 
@@ -465,7 +495,25 @@ void TrainNeuralNet(std::wstring filePath) //Write couts to file, file writing P
 		//Report how well the training is working.
 		trainingData << "Net recent average error: " << NeuralNetwork::g_NeuralNetwork->GetRecentAverageError() << std::endl;
 
+		++trainingPass;
 	}
 
 	trainingData.close();
+}
+
+void GetTopologyParams(std::wstring topologyStr, int& inputLayer, int& outputLayer)
+{
+	std::wistringstream iss(topologyStr);
+
+
+	// Read the first number
+	iss >> inputLayer;
+
+	// Iterate through the string until the last number is found
+
+	//Empty while loop just to read out numbers :)
+	while (iss >> outputLayer) {
+		// Keep reading numbers until the last one is found
+	}
+
 }
