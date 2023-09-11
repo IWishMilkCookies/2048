@@ -6,6 +6,7 @@
 #include "core/subject.h"
 #include "core/board.h"
 
+
 class Board;
 
 class Game : public Subject

@@ -9,7 +9,7 @@ TrainingData::TrainingData(std::string fileName):
 	m_TrainingDataFile.open(fileName.c_str());
 }
 
-bool TrainingData::isEof()
+bool TrainingData::isEof() const
 {
 	return m_TrainingDataFile.eof();
 }
@@ -88,7 +88,7 @@ TrainingDataW::TrainingDataW(std::wstring fileName) :
 	m_TrainingDataFile.open(fileName.c_str());
 }
 
-bool TrainingDataW::isEof()
+bool TrainingDataW::isEof() const
 {
 	return m_TrainingDataFile.eof();
 }

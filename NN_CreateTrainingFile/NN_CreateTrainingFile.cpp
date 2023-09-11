@@ -24,13 +24,14 @@
 
 namespace TextBoxes
 {
-	HWND g_TextBox;
+	HWND g_TopologyTextBox;
+	HWND g_NrOfTrainingTextBox;
 }
 
 namespace NeuralNetwork
 {
-	std::unique_ptr<TrainingDataW> g_TrainingData;
-	std::unique_ptr<Net> g_NeuralNetwork;
+	std::unique_ptr<TrainingDataW> g_TrainingData = nullptr;
+	std::unique_ptr<Net> g_NeuralNetwork = nullptr;
 }
 
 // Global Variables:
@@ -44,9 +45,9 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-std::wstring OpenSaveDialogBox(HWND hWnd);
-std::wstring SelectFileDialogBox(HWND hWnd);
-void TrainNeuralNet();
+std::wstring OpenSaveDialogBox(HWND hWnd, const wchar_t* extFilter, const wchar_t* defExtenstion);
+std::wstring SelectFileDialogBox(HWND hWnd, const wchar_t* extFilter);
+void TrainNeuralNet(std::wstring filePath);
 
 
 void WriteToFile(HWND hWnd, std::wstring filePath);
@@ -130,9 +131,12 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
-
-	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+	
+	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+
+#pragma region Buttons
+
 
 	CreateWindow(
 		L"BUTTON",  // Predefined class; Unicode assumed 
@@ -151,7 +155,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		L"BUTTON",  // Predefined class; Unicode assumed 
 		L"Select Training File",      // Button text 
 		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-		350,         // x position 
+		340,         // x position 
 		670,         // y position 
 		300,        // Button width
 		50,        // Button height
@@ -164,7 +168,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		L"BUTTON",  // Predefined class; Unicode assumed 
 		L"Train selected Neural Net.",      // Button text 
 		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-		700,         // x position 
+		670,         // x position 
 		670,         // y position 
 		300,        // Button width
 		50,        // Button height
@@ -172,11 +176,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		(HMENU)IDC_TRAIN_NETWORK_BUTTON,       // Unique button identifier.
 		(HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
 		NULL);      // Pointer not needed.
+#pragma endregion
 
 
-	TextBoxes::g_TextBox = CreateWindow(L"EDIT", 0, WS_BORDER | WS_CHILD | WS_VISIBLE, 10 /*x pos*/, 70 /*y pos*/, 400 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
+#pragma region TextBoxes
+
+	TextBoxes::g_TopologyTextBox = CreateWindow(L"EDIT", L"Topology", WS_BORDER | WS_CHILD | WS_VISIBLE, 10 /*x pos*/, 70 /*y pos*/, 400 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
+	TextBoxes::g_NrOfTrainingTextBox = CreateWindow(L"EDIT", L"0", WS_BORDER | WS_CHILD | WS_VISIBLE | ES_NUMBER, 350 /*x pos*/, 100 /*y pos*/, 50 /*width*/, 20 /*height*/, hWnd, 0, hInst, 0);
 	//Add text box for number of tests -> User fills in how many tests need to be performed.
 	
+#pragma endregion
+
+#pragma region Static Text
+
 	CreateWindow(L"STATIC",
 		L"Fill in the topology of your network seperated by spaces: 20 10 10 5.",
 		WS_BORDER | WS_CHILD | WS_VISIBLE,
@@ -188,6 +200,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		WS_BORDER | WS_CHILD | WS_VISIBLE,
 		10 /*x pos*/, 40 /*y pos*/, 450 /*width*/, 20 /*height*/,
 		hWnd, 0, hInst, 0);
+
+	CreateWindow(L"STATIC",
+		L"Amount of times you want to train your neural net.",
+		WS_BORDER | WS_CHILD | WS_VISIBLE,
+		10 /*x pos*/, 100 /*y pos*/, 330 /*width*/, 20 /*height*/,
+		hWnd, 0, hInst, 0);
+
+#pragma endregion
+
 
 	if (!hWnd)
 		return FALSE;
@@ -227,9 +248,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDC_SELECT_PATH_BUTTON:
 			if (HIWORD(wParam) == BN_CLICKED) //Check if button is clicked
 			{
-				auto filePath = OpenSaveDialogBox(hWnd);
+				auto filePath = OpenSaveDialogBox(hWnd, L"Training Data Files (*.TD)\0*.TD\0", L".TD");
 				if (filePath.empty()) //If path doesn't exist, break out of switch case.
+				{
+					MessageBox(hWnd, L"No valid path has been given.", NULL, MB_OK);
 					break;
+				}
 
 				WriteToFile(hWnd, filePath);
 			}
@@ -237,10 +261,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDC_SELECT_FILE_BUTTON:
 			if (HIWORD(wParam) == BN_CLICKED)
 			{
-				auto filePath = SelectFileDialogBox(hWnd);
+				auto filePath = SelectFileDialogBox(hWnd, L"Training Data Files (*.TD)\0*.TD\0");
 				
 				if (filePath.empty()) //If path doesn't exist, break out of switch case.
+				{
+					MessageBox(hWnd, L"No valid path has been given.", NULL, MB_OK);
 					break;
+				}
 
 				NeuralNetwork::g_TrainingData = std::make_unique<TrainingDataW>(filePath);
 
@@ -252,8 +279,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDC_TRAIN_NETWORK_BUTTON:
 			if (HIWORD(wParam) == BN_CLICKED)
 			{		
-				MessageBox(hWnd, L"Neural Network button works !", NULL, MB_OKCANCEL);
-				//TrainNeuralNet();
+
+				if (!NeuralNetwork::g_TrainingData)
+				{
+					MessageBox(hWnd, L"No prior training data file has been selected.", NULL, MB_OK | MB_ICONERROR);
+					break;
+				}
+
+				std::wstring filePath = OpenSaveDialogBox(hWnd, L"Text Files (*.txt)\0*.txt\0", L".txt");
+
+				if (filePath.empty()) //If path doesn't exist, break out of switch case.
+				{
+					MessageBox(hWnd, L"No valid training file was selected.", NULL, MB_OK);
+					break;
+				}
+
+				TrainNeuralNet(filePath);
 			}
 			break;
 		default:
@@ -298,7 +339,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-std::wstring OpenSaveDialogBox(HWND hWnd) //Add Filter and extension as parameter
+std::wstring OpenSaveDialogBox(HWND hWnd, const wchar_t* extFilter, const wchar_t* defExtenstion) //Add Filter and extension as parameter
 {
 	//Open dialog box
 	OPENFILENAME ofn;
@@ -312,10 +353,10 @@ std::wstring OpenSaveDialogBox(HWND hWnd) //Add Filter and extension as paramete
 	ofn.lpstrFile = file_Name;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(file_Name);
-	ofn.lpstrFilter = L"Training Data Files (*.TD)\0*.TD\0";
+	ofn.lpstrFilter = extFilter;
 	ofn.nFilterIndex = 1;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-	ofn.lpstrDefExt = L".TD";
+	ofn.lpstrDefExt = defExtenstion;
 
 
 	if (GetSaveFileNameW(&ofn) == TRUE)
@@ -325,7 +366,7 @@ std::wstring OpenSaveDialogBox(HWND hWnd) //Add Filter and extension as paramete
 
 }
 
-std::wstring SelectFileDialogBox(HWND hWnd)
+std::wstring SelectFileDialogBox(HWND hWnd, const wchar_t* extFilter)
 {
 	//Open dialog box
 	OPENFILENAME ofn;
@@ -339,7 +380,7 @@ std::wstring SelectFileDialogBox(HWND hWnd)
 	ofn.lpstrFile = file_Name;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(file_Name);
-	ofn.lpstrFilter = L"Training Data Files (*.TD)\0*.TD\0";
+	ofn.lpstrFilter = extFilter;
 	ofn.nFilterIndex = 1;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
@@ -352,17 +393,16 @@ std::wstring SelectFileDialogBox(HWND hWnd)
 
 void WriteToFile(HWND hWnd, std::wstring filePath)
 {
-
-	int textLength = GetWindowTextLengthW(TextBoxes::g_TextBox) + 1;
+	int textLength = GetWindowTextLengthW(TextBoxes::g_TopologyTextBox) + 1;
 	std::wstring topologyText(textLength, L' ');
 	
-	GetWindowTextW(TextBoxes::g_TextBox, &topologyText[0], textLength);
+	GetWindowTextW(TextBoxes::g_TopologyTextBox, &topologyText[0], textLength);
 
 	//Check if topology is valid, with regex : \d+\s\d+\s\d+(?:\s\d+)*
-	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*");
+	std::wregex regexPattern(L"\\d+\\s\\d+\\s\\d+(?:\\s\\d+)*.");
 	if (!std::regex_match(topologyText, regexPattern))
 	{
-		MessageBox(hWnd, L"This topology is not valid.", NULL, MB_OK);
+		MessageBox(hWnd, L"This topology is not valid.", NULL, MB_OK | MB_ICONERROR);
 		return;
 	}
 
@@ -370,7 +410,17 @@ void WriteToFile(HWND hWnd, std::wstring filePath)
 	sampleData.open(filePath);
 	sampleData << L"topology: ";
 	sampleData << topologyText << '\n';
-	for (int i = 2000; i >= 0; --i)
+
+
+
+	int trainingAmount = GetWindowTextLengthW(TextBoxes::g_NrOfTrainingTextBox) + 1;
+	std::wstring trainingAmountText(trainingAmount, L' ');
+	
+	GetWindowTextW(TextBoxes::g_NrOfTrainingTextBox, &trainingAmountText[0], trainingAmount);
+	int actualTrainingAmount = std::stoi(trainingAmountText);
+	
+
+	for (int i = actualTrainingAmount; i >= 0; --i) //2000 -> Number given in by user.
 	{
 		int n1 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
 		int n2 = static_cast<int>(2.f * rand() / static_cast<unsigned>(RAND_MAX));
@@ -383,15 +433,19 @@ void WriteToFile(HWND hWnd, std::wstring filePath)
 	sampleData.close();
 }
 
-void TrainNeuralNet() //Write couts to file, file writing Path given as parameter.
+void TrainNeuralNet(std::wstring filePath) //Write couts to file, file writing Path given as parameter.
 {
 	std::vector<double> inputVals, targetVals, resultVals;
 	int trainingPass = 0;
+
+	std::wofstream trainingData;
+	trainingData.open(filePath);
+	
 	while (NeuralNetwork::g_TrainingData->isEof())
 	{
 
 		++trainingPass;
-		//std::cout << std::endl << "Pass " << trainingPass;
+		trainingData << std::endl << "Pass " << trainingPass;
 
 		//Get new input data and feed it forward
 		if (NeuralNetwork::g_TrainingData->getNextInputs(inputVals) != NeuralNetwork::g_TrainingData->getTopology()[0])
@@ -409,7 +463,9 @@ void TrainNeuralNet() //Write couts to file, file writing Path given as paramete
 		NeuralNetwork::g_NeuralNetwork->BackProp(targetVals);
 
 		//Report how well the training is working.
-		//std::cout << "Net recent average error: " << myNet->GetRecentAverageError() << std::endl;
+		trainingData << "Net recent average error: " << NeuralNetwork::g_NeuralNetwork->GetRecentAverageError() << std::endl;
 
 	}
+
+	trainingData.close();
 }
