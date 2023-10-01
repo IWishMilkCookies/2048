@@ -6,6 +6,8 @@ Game::Game(int dimension)
     score = 0;
     board = new Board(dimension);
     restart();
+
+    
 }
 
 Game::~Game()

@@ -7,6 +7,11 @@
 #include <QVector>
 #include <QWidget>
 
+//Required for NN
+#include <memory>
+#include <NeuralNetwork.h>
+#include <vector>
+
 class QResetButton;
 class Game;
 class QKeyEvent;
@@ -14,6 +19,10 @@ class QTile;
 class QGridLayout;
 class QVBoxLayout;
 class QLabel;
+class Board;
+
+enum Direction : int;
+
 
 class QGameBoard : public QWidget, public Observer
 {
@@ -23,6 +32,18 @@ public:
     ~QGameBoard();
 
     void notify();
+
+    //Method(s) for NN
+    void LoopNeuralNet();
+    void ApplyNeuralNetworkMove(const std::vector<double>& targetOutput);
+
+    int SimulateMovement(Direction direction, Board* board);
+    void SetAllButHighestToZero(std::vector<double>& targetOutputs);
+    void CombineAdjacentElements(int& elem1, int& elem2, int& elem3, int& elem4);
+    void MoveElements(int& elem1, int& elem2, int& elem3, int& elem4);
+    int SolveRow(int elem1, int elem2, int elem3, int elem4);
+
+    void SanitizeInputs(const QVector<int>& inputVector, std::vector<double>& outputVector);
 
 private:
 
@@ -41,6 +62,12 @@ private:
     QLabel *youwin;
 
     void drawBoard();
+
+
+    //Variable(s) for NN
+    std::vector<unsigned> neuralNetTopology{ 16,10,4 };
+    std::unique_ptr<Net> neuralNetwork;
+    Direction previousDirection;
 
 protected:
     void keyPressEvent(QKeyEvent *event);

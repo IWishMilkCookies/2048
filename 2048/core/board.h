@@ -29,6 +29,10 @@ public:
     // is there still a move possible
     bool movePossible() const;
 
+
+    //Method(s) added for NN
+    const QVector<int>& GetBoardState() const { return boardState; } 
+
 private:
     QVector<QVector<Tile*> > board;
     int dimension;
@@ -49,8 +53,13 @@ private:
     // some reinitalisation for the next round
     void prepareForNextMove();
 
+
     int pointsScoredLastRound;
     bool tileCollisionLastRound;
+    
+    //Variable(s) and Method(s) added for NN
+    void UpdateBoardState();
+    QVector<int> boardState;
 };
 
 #endif // BOARD_H

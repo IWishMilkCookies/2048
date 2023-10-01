@@ -20,9 +20,6 @@ Net::Net(const std::vector<unsigned int>& topology)
 
 
 		//This is one layer, now add the neurons
-
-		int debugVar;
-		debugVar = 1;
 		for (unsigned neuronNum = 0; neuronNum <= topology[layerNum]; ++neuronNum)
 		{
 			m_Layers.back().push_back(Neuron(numOutputs, neuronNum));
@@ -32,8 +29,6 @@ Net::Net(const std::vector<unsigned int>& topology)
 		//Force the bias node's output value to be one, it's the last neuron created above.
 		m_Layers.back().back().setOutputVal(1.0);
 	}
-
-
 
 }
 

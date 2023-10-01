@@ -9,15 +9,18 @@
 
 using namespace std;
 
-Board::Board(int dimension)
+Board::Board(int dimension):
+    boardState(dimension*dimension,0)
 {
     pointsScoredLastRound = 0;
     tileCollisionLastRound = false;
     this->dimension = dimension;
+    
     init();
 }
 
-Board::Board(const Board &other)
+Board::Board(const Board &other) :
+    boardState(other.dimension* other.dimension, 0)
 {
     dimension = other.dimension;
     init();
@@ -47,6 +50,7 @@ void Board::init()
     for (int i = 0; i < dimension; ++i)
         for (int j = 0; j < dimension; ++j)
             board[i][j] = NULL;
+
 }
 
 QVector<int> Board::freePosition()
@@ -98,6 +102,8 @@ void Board::reset()
     start = freePosition();
     board[start[0]][start[1]] = new Tile();
 
+
+    UpdateBoardState();
 }
 
 Tile* Board::getTile(int i, int j)
@@ -139,6 +145,8 @@ void Board::move(Direction direction)
         board[newpos[0]][newpos[1]] = new Tile();
     }
 
+    UpdateBoardState();
+
     notifyObservers();
 }
 
@@ -151,6 +159,24 @@ void Board::prepareForNextMove()
             if (board[i][j] != nullptr) {
                 board[i][j]->setUpgratedThisMove(false);
             }
+        }
+    }
+}
+
+void Board::UpdateBoardState()
+{
+    //For loop for NN
+    for (int i = 0; i < dimension; ++i)
+    {
+        for (int j = 0; j < dimension; ++j)
+        {
+            if (board[i][j] == NULL)
+            {
+                boardState[(i * dimension) + j] = 0;
+                continue;
+            }
+
+            boardState[(i * dimension) + j] = board[i][j]->getValue();
         }
     }
 }

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
+#include <thread>       /*multi threading for input loop*/
 #include "core/board.h"
 #include "gui/qgameboard.h"
 
@@ -12,6 +13,9 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    std::jthread inputThread;
+
+
 
     srand(time(NULL));
     QGameBoard board;
