@@ -25,11 +25,10 @@ Net::Net(const std::vector<unsigned int>& topology)
 			m_Layers.back().push_back(Neuron(numOutputs, neuronNum));
 			std::cout << "Made a Neuron on layer: " << layerNum << ' ' << "With: " << numOutputs << " outputs." << std::endl;
 		}
-		
+
 		//Force the bias node's output value to be one, it's the last neuron created above.
 		m_Layers.back().back().setOutputVal(1.0);
 	}
-
 }
 
 void Net::FeedForward(const std::vector<double>& inputVals)
@@ -72,7 +71,7 @@ void Net::BackProp(const std::vector<double>& targetVals)
 	m_RecentAverageError = (m_RecentAverageError * m_RecentAverageSmoothingFactor + m_Error) / (m_RecentAverageSmoothingFactor + 1.0);
 
 	//Calculate output layer gradients
-	for (unsigned neuron = 0; neuron < outputLayer.size() -1; ++neuron)
+	for (unsigned neuron = 0; neuron < outputLayer.size() - 1; ++neuron)
 	{
 		outputLayer[neuron].CalcOutputGradients(targetVals[neuron]);
 	}
@@ -96,7 +95,7 @@ void Net::BackProp(const std::vector<double>& targetVals)
 		Layer& layer = m_Layers[layerNum];
 		Layer& prevLayer = m_Layers[layerNum - 1];
 
-		for (unsigned neuron = 0; neuron < layer.size() -1; ++neuron)
+		for (unsigned neuron = 0; neuron < layer.size() - 1; ++neuron)
 		{
 			layer[neuron].UpdateInputWeights(prevLayer);
 		}
@@ -113,3 +112,4 @@ void Net::GetResults(std::vector<double>& resultVals) const
 		resultVals.push_back(m_Layers.back()[neuron].getOutputVal());
 	}
 }
+

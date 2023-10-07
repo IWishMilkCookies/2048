@@ -11,6 +11,9 @@
 #include <memory>
 #include <NeuralNetwork.h>
 #include <vector>
+#include <mutex>
+#include <QThread>
+
 
 class QResetButton;
 class Game;
@@ -37,6 +40,9 @@ public:
     void LoopNeuralNet();
     void ApplyNeuralNetworkMove(const std::vector<double>& targetOutput);
 
+    void RunThread();
+
+    bool IsEqual(const QVector<int>& list1, const QVector<int>& list2);
     int SimulateMovement(Direction direction, Board* board);
     void SetAllButHighestToZero(std::vector<double>& targetOutputs);
     void CombineAdjacentElements(int& elem1, int& elem2, int& elem3, int& elem4);
@@ -44,6 +50,7 @@ public:
     int SolveRow(int elem1, int elem2, int elem3, int elem4);
 
     void SanitizeInputs(const QVector<int>& inputVector, std::vector<double>& outputVector);
+
 
 private:
 
@@ -65,10 +72,16 @@ private:
 
 
     //Variable(s) for NN
-    std::vector<unsigned> neuralNetTopology{ 16,10,4 };
-    std::unique_ptr<Net> neuralNetwork;
+    std::vector<unsigned> neuralNetTopology{ 16,10,10,8,4 };
+    std::unique_ptr<Net> neuralNetwork;         
     Direction previousDirection;
 
+    const int m_DesiredFPS{ 1000 };
+    const int m_FrameTimeMS{ 1000 / m_DesiredFPS };
+    std::chrono::steady_clock::time_point m_LastTime{ std::chrono::high_resolution_clock::now() };
+    std::chrono::steady_clock::time_point m_CurrentTime;
+    bool m_IsThreadRunning;
+    QThread* m_NeuralNetThread;
 protected:
     void keyPressEvent(QKeyEvent *event);
 

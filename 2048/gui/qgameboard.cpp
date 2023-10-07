@@ -1,3 +1,9 @@
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif // !WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+
 #include "gui/qgameboard.h"
 #include "core/board.h"
 #include "core/game.h"
@@ -15,16 +21,23 @@
 
 #include <QDebug>
 #include "qgameboard.h"
+#include <WinUser.h>
 
 
 QGameBoard::~QGameBoard()
 {
+	m_IsThreadRunning = false;
+	m_NeuralNetThread->terminate();
+	m_NeuralNetThread->wait();
 	delete game;
 }
 
 QGameBoard::QGameBoard(QWidget* parent) :
 	QWidget(parent)
 {
+
+	neuralNetwork = std::make_unique<Net>(neuralNetTopology);
+
 	// set default size
 	resize(650, 450);
 
@@ -57,9 +70,27 @@ QGameBoard::QGameBoard(QWidget* parent) :
 	// style sheet of the board
 	setStyleSheet("QGameBoard { background-color: rgb(187,173,160) }");
 
-	connect(gameOverWindow.getResetBtn(), SIGNAL(clicked()), this, SLOT(resetGame()));
+	//connect(gameOverWindow.getResetBtn(), SIGNAL(clicked()), this, SLOT(resetGame()));
+	m_NeuralNetThread = QThread::create(&QGameBoard::RunThread, this);
+	m_NeuralNetThread->start();
+}
 
-	neuralNetwork = std::make_unique<Net>(neuralNetTopology);
+void QGameBoard::RunThread()
+{
+	auto lastTime = std::chrono::high_resolution_clock::now();
+
+
+	while (m_IsThreadRunning)
+	{
+		const auto currentTime = std::chrono::high_resolution_clock::now();
+
+		//Insert code here
+		LoopNeuralNet();
+
+		lastTime = currentTime;
+		const auto sleepTime = currentTime + std::chrono::milliseconds(m_FrameTimeMS) - std::chrono::high_resolution_clock::now();
+		std::this_thread::sleep_for(sleepTime);
+	}
 }
 
 void QGameBoard::keyPressEvent(QKeyEvent* event)
@@ -83,7 +114,8 @@ void QGameBoard::keyPressEvent(QKeyEvent* event)
 		game->move(DOWN);
 		break;
 	case Qt::Key_Space:
-		LoopNeuralNet();
+		//LoopNeuralNet
+		drawBoard();
 		break;
 	}
 }
@@ -91,14 +123,20 @@ void QGameBoard::keyPressEvent(QKeyEvent* event)
 void QGameBoard::notify()
 {
 	if (game->isGameOver())
-		gameOverWindow.show();
+		game->restart();
 
 	if (game->won())
-		score->setText(QString("You hit 2048, congratulations! Keep playing to increase your score.\t\t SCORE: %1").arg(game->getScore()));
+		game->restart();
+	//score->setText(QString("You hit 2048, congratulations! Keep playing to increase your score.\t\t SCORE: %1").arg(game->getScore()));
 	else
 		score->setText(QString("SCORE: %1").arg(game->getScore()));
 
-	drawBoard();
+	
+	//      INPUT input[1]{};
+	//      input[0].type = INPUT_KEYBOARD;
+	//      input[0].ki.wVk = VK_SPACE;
+	//      SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
+	//drawBoard();
 }
 
 void QGameBoard::LoopNeuralNet()
@@ -111,8 +149,8 @@ void QGameBoard::LoopNeuralNet()
 	neuralNetwork->FeedForward(neuralInputs);
 
 	//These are the results, the network came up with.
-	std::vector<double> resultValues;												
-	neuralNetwork->GetResults(resultValues);		  								
+	std::vector<double> resultValues;
+	neuralNetwork->GetResults(resultValues);
 
 	std::vector<double> targetOutputs(4, 0);
 
@@ -135,16 +173,19 @@ void QGameBoard::LoopNeuralNet()
 void QGameBoard::ApplyNeuralNetworkMove(const std::vector<double>& targetOutput)
 {
 	int idxMaxVal{ 0 };
+	float highestValue{ FLT_MIN };
 	for (int i = 0; i < targetOutput.size(); ++i)
 	{
-		if (i + 1 < targetOutput.size())
+
+		if (targetOutput[i] > highestValue)
 		{
-			if (targetOutput[i] > targetOutput[i + 1])
-				idxMaxVal = i;
+			idxMaxVal = i;
+			highestValue = targetOutput[i];
 		}
+
 	}
 
-	game->move(static_cast<Direction>(idxMaxVal));
+     game->move(static_cast<Direction>(idxMaxVal));
 }
 
 void QGameBoard::SetAllButHighestToZero(std::vector<double>& targetOutputs) {
@@ -183,19 +224,34 @@ void QGameBoard::SetAllButHighestToZero(std::vector<double>& targetOutputs) {
 }
 
 
-int QGameBoard::SimulateMovement(Direction direction, Board* board)
+bool QGameBoard::IsEqual(const QVector<int>& list1, const QVector<int>& list2)
 {
 
-	if (previousDirection == direction)
-		return 0;
+	if (list1.size() != list2.size())
+		return false;
 
+	for (int i = 0; i < list1.size(); ++i)
+	{
+		if (list1[i] != list2[i])
+			return false;
+	}
 
+	return true;
+}
+
+int QGameBoard::SimulateMovement(Direction direction, Board* board)
+{
+	auto boardStateBefore = board->GetBoardState();
+	
 	board->move(direction);
 
+	auto boardStateAfter = board->GetBoardState();
 
-	int emptySpaceAmount{0};
-	auto boardState = board->GetBoardState();
-	for (auto& idx : boardState)
+	if (IsEqual(boardStateBefore, boardStateAfter))
+		return 0;
+
+	int emptySpaceAmount{ 0 };
+	for (auto& idx : boardStateAfter)
 	{
 		if (idx == 0)
 			++emptySpaceAmount;
@@ -231,7 +287,7 @@ void QGameBoard::SanitizeInputs(const QVector<int>& inputVector, std::vector<dou
 {
 	outputVector.clear();
 	outputVector.resize(inputVector.size());
-	
+
 	double maxValue = *std::max_element(inputVector.begin(), inputVector.end());
 
 	for (int i = 0; i < inputVector.size(); ++i)
@@ -242,18 +298,18 @@ void QGameBoard::SanitizeInputs(const QVector<int>& inputVector, std::vector<dou
 
 void QGameBoard::CombineAdjacentElements(int& elem1, int& elem2, int& elem3, int& elem4)
 {
-	if (elem1 == elem2)						 
-	{										 
-		elem1 *= 2;							 
-		elem2 = elem3;						 
-		elem3 = elem4;						 
-		elem4 = 0;							 
-	}										 
-	else if (elem2 == elem3)				 
-	{										 
-		elem2 *= 2;							 
-		elem3 = elem4;						 
-		elem4 = 0;							 
+	if (elem1 == elem2)
+	{
+		elem1 *= 2;
+		elem2 = elem3;
+		elem3 = elem4;
+		elem4 = 0;
+	}
+	else if (elem2 == elem3)
+	{
+		elem2 *= 2;
+		elem3 = elem4;
+		elem4 = 0;
 	}
 	else if (elem3 == elem4)
 	{
@@ -309,6 +365,5 @@ void QGameBoard::resetGame()
 	score->setText(QString("SCORE: %1").arg(game->getScore()));
 	gameOverWindow.hide();
 
-
-
 }
+

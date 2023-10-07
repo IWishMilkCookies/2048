@@ -10,16 +10,17 @@
 
 #include "gui/qgameoverwindow.h"
 
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    std::jthread inputThread;
+
+
+int main(int argc, char* argv[])
+  {
+	QApplication a(argc, argv);
 
 
 
-    srand(time(NULL));
-    QGameBoard board;
-    board.show();
+	srand(time(NULL));
+	QGameBoard board;
+	board.show();
 
-    return a.exec();
+	return a.exec();
 }
