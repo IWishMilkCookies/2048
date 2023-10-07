@@ -1,4 +1,4 @@
-2048
+2048 - NeuralNetwork
 ====
 
 ## Thank you note
@@ -32,6 +32,9 @@ Qt works with their own ways of making and managing multiple threads.
 This lead to the research of the documentation of what Qt had to offer.
 Even after attempting their way of starting a thread, the issue of not being able to update
 the GUI layout from a seperate thread persisted.
+
+We circumvented the issues in someways by binding the space bar to the GUI update method
+and virtually simulating a spacebar press within the program itself, but that was too cheesy.
 
 To make a long story short, the Network works, it's just not very compatible with this application
 in particular, though that being said, the game made by **jvaelen** is still very well made and worth
